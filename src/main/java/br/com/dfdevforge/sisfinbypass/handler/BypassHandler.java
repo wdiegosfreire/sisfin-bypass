@@ -25,9 +25,6 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 		APIGatewayProxyResponseEvent lambdaResponse = new APIGatewayProxyResponseEvent();
 
 		try {
-			this.log("event.getPath()", event.getPath());
-			this.log("event.getResource()", event.getResource());
-
 			if (event.getHttpMethod().equalsIgnoreCase("GET"))
 				httpResponse = this.get(event);
 			else
@@ -36,6 +33,8 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 			// Preparando o response
 			Map<String, String> headers = new HashMap<>();
 			headers.put("Access-Control-Allow-Origin", "*");
+
+			this.log("DEBUG :: httpResponse.body()", httpResponse.body());
 
 			lambdaResponse.setBody(httpResponse.body());
 			lambdaResponse.setHeaders(headers);
@@ -47,7 +46,6 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 			e.printStackTrace();
 		}
 
-		this.log("lambdaResponse", lambdaResponse);
 		return lambdaResponse;
 	}
 
