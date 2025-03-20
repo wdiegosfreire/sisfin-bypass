@@ -1,36 +1,105 @@
 package br.com.dfdevforge.sisfinbypass.handler;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
-import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.google.gson.JsonObject;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 
-public class BypassHandler implements RequestStreamHandler {
+public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+	private LambdaLogger logger = null;
 
-	public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
-		LambdaLogger logger = context.getLogger();
+	@Override
+	public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
+		logger = context.getLogger();
 
-		logger.log("BEGIN");
-		logger.log(input.toString());
-		logger.log("END");
+		HttpResponse<String> httpResponse = null;
+		APIGatewayProxyResponseEvent lambdaResponse = new APIGatewayProxyResponseEvent();
 
-		JsonObject message = new JsonObject();
-		message.addProperty("message", "Bolinha!!!!");
+		try {
+			if (event.getHttpMethod().equalsIgnoreCase("GET"))
+				httpResponse = this.get(event);
+			else
+				httpResponse = this.post(event);
 
-		JsonObject response = new JsonObject();
-		response.add("body", message);
+			// Preparando o response
+			Map<String, String> headers = new HashMap<>();
+			headers.put("Access-Control-Allow-Origin", "*");
 
-		OutputStreamWriter writer = new OutputStreamWriter(output, "UTF-8");
-		writer.write(response.toString());
-		writer.close();
+			this.log("DEBUG :: httpResponse.body()", httpResponse.body());
+
+			lambdaResponse.setBody(httpResponse.body());
+			lambdaResponse.setHeaders(headers);
+			
+			lambdaResponse.setStatusCode(httpResponse.statusCode());
+		}
+		catch (Exception e) {
+			this.log("Exception", "Entrou no bloco catch...");
+			e.printStackTrace();
+		}
+
+		return lambdaResponse;
 	}
 
-	private void readInputStream(InputStream input) {
+	private HttpResponse<String> get(APIGatewayProxyRequestEvent event) throws IOException, InterruptedException {
+		HttpClient client = HttpClient.newBuilder().build();
+
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(this.getApplication(event.getPath())))
+				.header("Content-Type", "application/json")
+				.GET()
+				.build();
+
+		return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+	private HttpResponse<String> post(APIGatewayProxyRequestEvent event) throws IOException, InterruptedException {
+		HttpClient client = HttpClient.newBuilder().build();
+
+		String token = "";
+		if (event.getQueryStringParameters() != null && event.getQueryStringParameters().get("token") !=null)
+			token = "?token=" + event.getQueryStringParameters().get("token");
+
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(this.getApplication(event.getPath()) + token))
+				.header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(event.getBody()))
+				.build();
 		
+		return client.send(request, HttpResponse.BodyHandlers.ofString());
+	}
+
+	public String getApplication(String resource) {
+		String sisfinPath = "";
+
+		if (resource.contains("maintenance")) {
+			sisfinPath = "http://192.168.0.170:8080" + resource.split("maintenance")[1];
+		}
+		else {
+			sisfinPath = "http://192.168.0.170:8081" + resource.split("transaction")[1];
+		}
+
+		return sisfinPath;
+	}
+
+	private void log(String identifier, Object value) {
+		logger.log("SISFIN: " + identifier + ": " + value);
 	}
 }
+
+
+
+
+
+
+
+
+
