@@ -34,16 +34,13 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 			Map<String, String> headers = new HashMap<>();
 			headers.put("Access-Control-Allow-Origin", "*");
 
-			this.log("DEBUG :: httpResponse.body()", httpResponse.body());
-
 			lambdaResponse.setBody(httpResponse.body());
 			lambdaResponse.setHeaders(headers);
 			
 			lambdaResponse.setStatusCode(httpResponse.statusCode());
 		}
 		catch (Exception e) {
-			this.log("Exception", "Entrou no bloco catch...");
-			e.printStackTrace();
+			this.log("Exception", e.getMessage());
 		}
 
 		return lambdaResponse;
