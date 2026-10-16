@@ -52,13 +52,14 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 	private HttpResponse<String> get(APIGatewayProxyRequestEvent event) throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newBuilder().build();
 
-		HttpRequest request = HttpRequest.newBuilder()
+		HttpRequest.Builder builder = HttpRequest.newBuilder()
 				.uri(URI.create(this.getApplication(event.getPath())))
 				.header("Content-Type", "application/json")
-				.GET()
-				.build();
+				.GET();
 
-		return client.send(request, HttpResponse.BodyHandlers.ofString());
+		this.forwardAuthorizationHeader(event, builder);
+
+		return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
 	private HttpResponse<String> post(APIGatewayProxyRequestEvent event) throws IOException, InterruptedException {
@@ -68,13 +69,26 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 		if (event.getQueryStringParameters() != null && event.getQueryStringParameters().get("token") !=null)
 			token = "?token=" + event.getQueryStringParameters().get("token");
 
-		HttpRequest request = HttpRequest.newBuilder()
+		HttpRequest.Builder builder = HttpRequest.newBuilder()
 				.uri(URI.create(this.getApplication(event.getPath()) + token))
 				.header("Content-Type", "application/json")
-				.POST(HttpRequest.BodyPublishers.ofString(event.getBody()))
-				.build();
-		
-		return client.send(request, HttpResponse.BodyHandlers.ofString());
+				.POST(HttpRequest.BodyPublishers.ofString(event.getBody()));
+
+		this.forwardAuthorizationHeader(event, builder);
+
+		return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+	}
+
+	private void forwardAuthorizationHeader(APIGatewayProxyRequestEvent event, HttpRequest.Builder builder) {
+		if (event.getHeaders() == null)
+			return;
+
+		for (Map.Entry<String, String> header : event.getHeaders().entrySet()) {
+			if ("Authorization".equalsIgnoreCase(header.getKey()) && header.getValue() != null) {
+				builder.header("Authorization", header.getValue());
+				return;
+			}
+		}
 	}
 
 	public String getApplication(String resource) {
@@ -94,12 +108,3 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 		logger.log("SISFIN: " + identifier + ": " + value);
 	}
 }
-
-
-
-
-
-
-
-
-
