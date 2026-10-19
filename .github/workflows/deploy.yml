@@ -1,0 +1,68 @@
+name: Build and deploy to AWS Lambda
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B clean package
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: sisfin-bypass-jar
+          path: target/sisfin-bypass-1.0-SNAPSHOT.jar
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write   # necessário para o OIDC
+      contents: read
+    steps:
+      - name: Download jar
+        uses: actions/download-artifact@v4
+        with:
+          name: sisfin-bypass-jar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          VERSION=$(aws lambda update-function-code \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
+            --zip-file fileb://sisfin-bypass-1.0-SNAPSHOT.jar \
+            --publish \
+            --query Version --output text)
+          aws lambda wait function-updated \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}"
+          echo "Versão publicada: $VERSION (commit ${{ github.sha }})" >> "$GITHUB_STEP_SUMMARY"
