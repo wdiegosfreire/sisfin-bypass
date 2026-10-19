@@ -24,27 +24,29 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 		HttpResponse<String> httpResponse = null;
 		APIGatewayProxyResponseEvent lambdaResponse = new APIGatewayProxyResponseEvent();
 
+		// Preparando o response
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Access-Control-Allow-Origin", "*");
+		lambdaResponse.setHeaders(headers);
+
 		try {
 			if (event.getHttpMethod().equalsIgnoreCase("GET"))
 				httpResponse = this.get(event);
 			else
 				httpResponse = this.post(event);
 
-			// Preparando o response
-			Map<String, String> headers = new HashMap<>();
-			headers.put("Access-Control-Allow-Origin", "*");
-
 			lambdaResponse.setBody(httpResponse.body());
-			lambdaResponse.setHeaders(headers);
-			
+
 			lambdaResponse.setStatusCode(httpResponse.statusCode());
 		}
 		catch (InterruptedException e) {
 			this.log("InterruptedException", e.getMessage());
 			Thread.currentThread().interrupt();
+			lambdaResponse.setStatusCode(500);
 		}
 		catch (Exception e) {
 			this.log("Exception", e.getMessage());
+			lambdaResponse.setStatusCode(500);
 		}
 
 		return lambdaResponse;
