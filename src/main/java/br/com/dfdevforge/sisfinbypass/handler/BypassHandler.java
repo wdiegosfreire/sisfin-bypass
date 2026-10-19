@@ -39,6 +39,10 @@ public class BypassHandler implements RequestHandler<APIGatewayProxyRequestEvent
 			
 			lambdaResponse.setStatusCode(httpResponse.statusCode());
 		}
+		catch (InterruptedException e) {
+			this.log("InterruptedException", e.getMessage());
+			Thread.currentThread().interrupt();
+		}
 		catch (Exception e) {
 			this.log("Exception", e.getMessage());
 		}
