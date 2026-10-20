@@ -19,11 +19,11 @@ class RequestUtilsTest {
 		jsonMock.append("{ ");
 		jsonMock.append("  \"path\": \"/transaction/user/executeAuthentication\", ");
 		jsonMock.append("  \"httpMethod\": \"POST\", ");
-		jsonMock.append("  \"isBase64Encoded\": true ");
-		jsonMock.append("  \"body\": { ");
-		jsonMock.append("      \"email\": \"wdiegosfreire@yahoo.com.br\", ");
-		jsonMock.append("      \"password\": \"08afd6f9ae0c6017d105b4ce580de885\", ");
-		jsonMock.append("  } ");
+		jsonMock.append("  \"isBase64Encoded\": true, ");
+		jsonMock.append("  \"body\": \"{ ");
+		jsonMock.append("      \\\"email\\\": \\\"wdiegosfreire@yahoo.com.br\\\", ");
+		jsonMock.append("      \\\"password\\\": \\\"08afd6f9ae0c6017d105b4ce580de885\\\" ");
+		jsonMock.append("  }\" ");
 		jsonMock.append("}");
 
 		InputStream input = new ByteArrayInputStream(jsonMock.toString().getBytes());

@@ -2,8 +2,6 @@ package br.com.dfdevforge.sisfinbypass.handler;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class BypassHandlerTest {
 
 	@Test 
-	void testLoadEventBridgeEvent() throws IOException {
+	void testLoadEventBridgeEvent() {
 		StringBuilder jsonMock = new StringBuilder();
 		jsonMock.append("{");
 		jsonMock.append("  \"path\": \"/maintenance/user/executeAuthentication\"");
